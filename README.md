@@ -66,7 +66,7 @@ What if it was a lot easier? What if we could hearness the power of TypeScript a
 ```javascript
 "use strict";
 
-import {Spec, Inject, Test, Mocks, Before} from "testutil/tjangular/decorators";
+import {Spec, Inject, Test, Mocks, Before} from "TJAngular";
 
 @Spec()
 class StatementDownloadCtrlSpec {
@@ -108,7 +108,7 @@ How do I provide mocks for Services, Providers,...
 TJAngular holds an internal angular module for all the mocks. You can register mocks by simply annotating them.
 
 ```javascript
-import {ProvideMockService} from "testutil/tjangular/decorators";
+import {ProvideMockService} from "TJAngular";
 "use strict";
 
 @ProvideMockService("auth_user_service")

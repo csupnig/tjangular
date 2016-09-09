@@ -1,0 +1,45 @@
+{
+  "author": "Christopher Supnig",
+  "name": "TJAngular",
+  "description": "A small testing framework built on top of jasmine, that uses typescript decorators to simplify testing.",
+  "license": "MIT",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "dependencies": {
+    "jasmine": "2.5.0"
+  },
+  "devDependencies": {
+    "gulp": "~3.6.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-concat": "~2.2.0",
+    "gulp-debug": "^2.1.2",
+    "gulp-rimraf": "*",
+    "gulp-strip-debug": "*",
+    "gulp-tslint": "~1.1.0",
+    "gulp-tslint-stylish": "~1.0.1",
+    "gulp-typedoc": "^1.2.1",
+    "gulp-typescript": "~2.8.0",
+    "gulp-uglify": "~0.2.1",
+    "gulp-util": "~2.2.14",
+    "dts-bundle":"0.5.0",
+    "merge2": "*",
+    "path": "~0.4.9",
+    "run-sequence": "^1.1.5"
+  },
+  "main": "index.js",
+  "typings": "./TJAngular.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csupnig/tjangular.git"
+  },
+  "keywords": [
+    "testing",
+    "test",
+    "unit",
+    "typescript",
+    "jasmine"
+  ],
+  "homepage": "https://github.com/csupnig/tjangular#readme"
+}
