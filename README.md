@@ -10,15 +10,15 @@ Mocking out dependencies in unit tests can be a huge pain. Angular makes testing
 
 ```javascript
 describe("StatementDownloadCtrl", () => {
-    var CTRL_ID : string = "financial_desktop_statement_download_ctrl";
+    var CTRL_ID : string = "dashboard_statement_download_ctrl";
 
-    var statementDownloadCtrl : vicky.IStatementDownloadCtrl;
-    var scope : vicky.IStatementDownloadScope;
+    var statementDownloadCtrl : myproj.IStatementDownloadCtrl;
+    var scope : myproj.IStatementDownloadScope;
     var downloadService : service.IDownloadService;
 
     beforeEach(angular.mock.module("app"));
     beforeEach(angular.mock.module("common"));
-    beforeEach(angular.mock.module("financial-desktop"));
+    beforeEach(angular.mock.module("dashboard"));
 
     beforeEach(() => {
         inject(($controller : any,
@@ -30,7 +30,7 @@ describe("StatementDownloadCtrl", () => {
                 download_service : service.IDownloadService) => {
             scope = $rootScope.$new();
             $httpBackend.expectGET(ENV.LANGUAGE_SERVICE_URL + "?lang=de").respond(200);
-            downloadService = vickyspa_download_service;
+            downloadService = myprojspa_download_service;
 
             statementDownloadCtrl = $controller(CTRL_ID,
                 {
@@ -76,8 +76,8 @@ class StatementDownloadCtrlSpec {
         "accountId": "ownAccount1",
         "billId": "2016001"
     })
-    @Inject("financial_desktop_statement_download_ctrl", "financial-desktop")
-    private controller : vicky.IStatementDownloadCtrl;
+    @Inject("dashboard_statement_download_ctrl", "dashboard")
+    private controller : myproj.IStatementDownloadCtrl;
 
     @Test()
     public testInit() : void {
@@ -86,9 +86,9 @@ class StatementDownloadCtrlSpec {
 
     @Test("should call downloadservice with correct default parameters")
     public testDownloadServiceCall() : void {
-        spyOn((<any> this.controller).$deps.vickyspa_download_service, "getDownloadAccountStatementUrl").and.callThrough();
+        spyOn((<any> this.controller).$deps.myprojspa_download_service, "getDownloadAccountStatementUrl").and.callThrough();
         this.controller.onDownload();
-        expect((<any> this.controller).$deps.vickyspa_download_service.getDownloadAccountStatementUrl).toHaveBeenCalledWith("ownAccount1", "2016001", "A4", false);
+        expect((<any> this.controller).$deps.myprojspa_download_service.getDownloadAccountStatementUrl).toHaveBeenCalledWith("ownAccount1", "2016001", "A4", false);
     }
 }
 ```
@@ -111,13 +111,10 @@ TJAngular holds an internal angular module for all the mocks. You can register m
 import {ProvideMockService} from "TJAngular";
 "use strict";
 
-@ProvideMockService("auth_user_service")
-class AnyAuthUserService implements service.IAuthUserService {
-    public onNewAuthentication() : angular.IPromise<models.IAuthenticationContext> {
-        return undefined;
-    }
+@ProvideMockService("myprojspa_download_service")
+class AnyDownloadService implements service.IDownloadService {
 
-    public parseAuthenticationToken(url : string) : string {
+    public getDownloadAccountStatementUrl(account : string, id : string, format : string, sign : boolean) : string {
         return undefined;
     }
 }    

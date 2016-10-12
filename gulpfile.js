@@ -31,7 +31,7 @@ gulp.task('typings', function() {
         name: 'TJAngular',
         main: './index.d.ts'
     });
-})
+});
 
 gulp.task('package',function(callback) {
     runSequence('clean',

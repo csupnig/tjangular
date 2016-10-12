@@ -1,3 +1,37 @@
+export declare class MockProvider {
+    static MOCK_MODULE_NAME: string;
+    static MOCK_PREFIX: string;
+    static LOGS_ENABLED: boolean;
+    static PROMISE_SERVICES: Array<string>;
+    private static MOCKS;
+    static getTestObject<T>(injector: angular.auto.IInjectorService, invokeQueue: Array<any>, descriptor: ProviderDescriptor, unmockeddeps: Array<string>): T;
+    static getInvokerQueue(moduledependencies: Array<string>): Array<any>;
+    static prepareModuleDependencyDescriptors<T>(injector: angular.auto.IInjectorService, invokeQueue: Array<any>, descriptor: ProviderDescriptor, unmockeddeps: Array<string>): void;
+    static registerModuleDependency(instance: any, dep: string | Array<string>): void;
+    static initMocks(): void;
+    static createTest(target: any, name: string, propertyKey: string, itMethod: (key: string, fn: Function) => void): void;
+    static createSpec(target: any, className: string, describeMethod: (key: string, fn: Function) => void): void;
+    static registerMock(mock: any, providerName: string, providerType: string): void;
+    private static sanitizeProvider(providerData, injector);
+    private static log(...args);
+    private static initializeProvider<T>(promiseInjector, injector, providerType, descriptor, preparedDeps);
+    private static getMockForProvider(injector, dependencyName, descriptor);
+    private static getProviderType(providerName, invokeQueue);
+}
+export declare class ProviderDescriptor {
+    propertyKey: string;
+    mocks: any;
+    moduleName: string;
+    providerName: string;
+    dependencies: Array<string>;
+    mock: boolean;
+    constructor(propertyKey: string);
+}
+export declare class MethodDescriptor {
+    target: any;
+    propertyKey: string;
+    constructor(target: any, propertyKey: string);
+}
 export declare function Spec(classname?: string): (target: any) => void;
 export declare function XSpec(classname?: string): (target: any) => void;
 export declare function FSpec(classname?: string): (target: any) => void;

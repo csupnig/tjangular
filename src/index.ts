@@ -1,27 +1,60 @@
 'use strict';
 
-class MockProvider {
+export class MockProvider {
     public static MOCK_MODULE_NAME : string = 'TJangularMocks';
     public static MOCK_PREFIX : string = 'TJ__';
     public static LOGS_ENABLED : boolean = false;
+    public static PROMISE_SERVICES : Array<string> = ['$q', '$rootScope', '$timeout', '$interval'];
 
     private static MOCKS : Array<MockDescriptor> = [];
 
-    public static getTestObject<T>(descriptor : ProviderDescriptor, moduledependencies : Array<string>, unmockeddeps : Array<string>) : T {
-        let allModules : Array<string> = ['ngMock', MockProvider.MOCK_MODULE_NAME].concat(moduledependencies);
-        let injector : angular.auto.IInjectorService = angular.injector(allModules);
-        let moduleObject : any = angular.module(descriptor.moduleName ? descriptor.moduleName : MockProvider.MOCK_MODULE_NAME);
-        let invokeQueue : Array<any> = moduleObject._invokeQueue;
-        let providerType : string = MockProvider.getProviderType(descriptor.providerName, invokeQueue);
+    public static getTestObject<T>(injector : angular.auto.IInjectorService, invokeQueue : Array<any>, descriptor : ProviderDescriptor, unmockeddeps : Array<string>) : T {
         let preparedDeps : any = {};
+        let objectDependencies : Array<string> = [];
+        angular.forEach(invokeQueue, (providerData : any) => {
+            let currProviderName : string = providerData[2][0];
 
-        if (angular.isDefined(descriptor.dependencies)) {
-            allModules = allModules.concat(descriptor.dependencies);
-        }
+            if (currProviderName === descriptor.providerName) {
+                let currProviderDeps : any = providerData[2][1];
+                if (angular.isFunction(currProviderDeps)) {
+                    currProviderDeps = currProviderDeps.$inject || injector.annotate(currProviderDeps);
+                }
 
-        angular.forEach(allModules || [], (moduleName : string) => {
+                for (var i = 0; i < currProviderDeps.length; i++) {
+                    if (!angular.isFunction(currProviderDeps[i])) {
+                        let depName : string = currProviderDeps[i];
+                        if (depName.indexOf(MockProvider.MOCK_PREFIX) > -1) {
+                            let provideName : string = depName.replace(MockProvider.MOCK_PREFIX, "");
+                            preparedDeps[provideName] = MockProvider.getMockForProvider(injector, depName, descriptor);
+                            objectDependencies.push(provideName + ' (mocked)');
+                        } else {
+                            preparedDeps[depName] = MockProvider.getMockForProvider(injector, depName, descriptor);
+                            objectDependencies.push(depName);
+                        }
+                    }
+                }
+            }
+        });
+        let providerType : string = MockProvider.getProviderType(descriptor.providerName, invokeQueue);
+        let provider : any = MockProvider.initializeProvider<T>(injector, injector, providerType, descriptor, preparedDeps);
+        MockProvider.log('Providing dependencies for ' + descriptor.providerName + ' as .$deps', objectDependencies);
+        provider.$deps = preparedDeps;
+        return provider;
+    }
+
+    public static getInvokerQueue(moduledependencies : Array<string>) : Array<any> {
+        let invokeQueue : Array<any> = [];
+        angular.forEach(moduledependencies || [], (moduleName : string) => {
             invokeQueue = invokeQueue.concat((<any> angular.module(moduleName))._invokeQueue);
         });
+
+        return invokeQueue;
+    }
+
+    public static prepareModuleDependencyDescriptors<T>(injector : angular.auto.IInjectorService,
+                                                        invokeQueue : Array<any>,
+                                                        descriptor : ProviderDescriptor,
+                                                        unmockeddeps : Array<string>) : void {
 
         angular.forEach(invokeQueue, (providerData : any) => {
             let currProviderName : string = providerData[2][0];
@@ -36,20 +69,14 @@ class MockProvider {
                 for (var i = 0; i < currProviderDeps.length; i++) {
                     if (!angular.isFunction(currProviderDeps[i])) {
                         let depName : string = currProviderDeps[i];
-                        preparedDeps[depName] = MockProvider.getMockForProvider(injector, depName, descriptor, unmockeddeps, currProviderDeps, i);
+                        if (unmockeddeps.indexOf(depName) < 0 && injector.has(MockProvider.MOCK_PREFIX + depName)) {
+                            MockProvider.log('Found mock in mock module => rewriting module dep: ' + depName);
+                            currProviderDeps[i] = MockProvider.MOCK_PREFIX + depName;
+                        }
                     }
                 }
             }
         });
-
-        let provider : any = MockProvider.initializeProvider<T>(injector, providerType, descriptor, preparedDeps);
-
-        angular.forEach(invokeQueue, (providerData : any) => {
-            MockProvider.sanitizeProvider(providerData, injector);
-        });
-
-        provider.$deps = preparedDeps;
-        return provider;
     }
 
     public static registerModuleDependency(instance : any, dep : string | Array<string>) : void {
@@ -102,6 +129,9 @@ class MockProvider {
         describeMethod(className, () => {
             beforeEach(() => {
                 let unmocked : Array<string> = [];
+                let injector : angular.auto.IInjectorService;
+                let allModules : Array<string> = [];
+                let invokeQueue : Array<any>;
 
                 MockProvider.initMocks();
                 angular.forEach(instance.$injects, (descriptor : ProviderDescriptor) => {
@@ -115,9 +145,24 @@ class MockProvider {
                         unmocked.push(descriptor.providerName);
                     }
                 });
-
+                allModules = ['ngMock', MockProvider.MOCK_MODULE_NAME].concat(instance.$moduledependencies);
+                injector = angular.injector(allModules);
+                invokeQueue = MockProvider.getInvokerQueue(instance.$moduledependencies);
+                // Prepare module dependency descriptors
                 angular.forEach(instance.$injects, (descriptor : ProviderDescriptor) => {
-                    instance[descriptor.propertyKey] = MockProvider.getTestObject(descriptor, instance.$moduledependencies, unmocked);
+                    MockProvider.prepareModuleDependencyDescriptors(injector, invokeQueue, descriptor, unmocked);
+                });
+                // Clean Injector cache
+                injector = angular.injector(allModules);
+
+                // Inject pending injects
+                angular.forEach(instance.$injects, (descriptor : ProviderDescriptor) => {
+                    instance[descriptor.propertyKey] = MockProvider.getTestObject(injector, invokeQueue, descriptor, unmocked);
+                });
+
+                // Clean module dependency descriptors
+                angular.forEach(invokeQueue, (providerData : any) => {
+                    MockProvider.sanitizeProvider(providerData, injector);
                 });
 
                 angular.forEach(instance.$before, (methodDescriptor : MethodDescriptor) => {
@@ -166,11 +211,15 @@ class MockProvider {
         }
     }
 
-    private static initializeProvider<T>(injector : angular.auto.IInjectorService, providerType : string, descriptor : ProviderDescriptor, preparedDeps : any) : T {
+    private static initializeProvider<T>(promiseInjector : angular.auto.IInjectorService, injector : angular.auto.IInjectorService, providerType : string, descriptor : ProviderDescriptor, preparedDeps : any) : T {
         let providerName : string = descriptor.providerName;
 
         if (descriptor.mock) {
             providerName = MockProvider.MOCK_PREFIX + providerName;
+        }
+
+        if (MockProvider.PROMISE_SERVICES.indexOf(providerName) > -1) {
+            return <T> promiseInjector.get(providerName);
         }
 
         switch (providerType) {
@@ -178,28 +227,18 @@ class MockProvider {
                 let $controller = <angular.IControllerService> injector.get('$controller');
                 return <T> $controller(providerName, preparedDeps);
             default:
-                return <T> injector.get(providerName);
+                return <T> promiseInjector.get(providerName);
         }
     }
 
     private static getMockForProvider(injector : angular.auto.IInjectorService,
                                       dependencyName : string,
-                                      descriptor : ProviderDescriptor,
-                                      unmockeddeps : Array<string>,
-                                      currProviderDeps : any,
-                                      i : number) : any {
+                                      descriptor : ProviderDescriptor) : any {
         if (angular.isDefined(descriptor.mocks[dependencyName])) {
             MockProvider.log('Found provided mock: ' + dependencyName);
             return descriptor.mocks[dependencyName];
         } else {
-            if (unmockeddeps.indexOf(dependencyName) < 0 && injector.has(MockProvider.MOCK_PREFIX + dependencyName)) {
-                MockProvider.log('Found mock in mock module: ' + dependencyName);
-                currProviderDeps[i] = MockProvider.MOCK_PREFIX + dependencyName;
-                return injector.get(MockProvider.MOCK_PREFIX + dependencyName);
-            } else {
-                MockProvider.log('Using unmocked for: ' + dependencyName);
-                return injector.get(dependencyName);
-            }
+            return injector.get(dependencyName);
         }
     }
 
@@ -226,7 +265,7 @@ class MockProvider {
     }
 }
 
-class ProviderDescriptor {
+export class ProviderDescriptor {
     public mocks : any = {};
     public moduleName : string;
     public providerName : string;
@@ -243,7 +282,7 @@ class TestDescriptor {
     constructor(public testname : string, public propertyKey : string, public itMethod : (key : string, fn : Function) => void) {}
 }
 
-class MethodDescriptor {
+export class MethodDescriptor {
     constructor(public target : any, public propertyKey : string) {}
 }
 
