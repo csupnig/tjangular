@@ -1,7 +1,34 @@
 TJAngular - Easy unit tests with TypeScript, jasmine and angular
-----------------------------------------------------
+----------------------------------------------------------------
 TJAngular is a small framework that makes writing unit tests a little less painfull. It depends on TypeScript, angular and Jasmine.
 
+Quickstart
+----------
+Makes unit testing easier by taking care of setting up the environment for you.
+```javascript
+"use strict";
+
+import {Spec, Inject, Test, Mocks, Scope} from "TJAngular/index";
+
+@Spec()
+class StatementDownloadCtrlSpec {
+
+    @Scope({
+        "scopemember":"1234"
+    })
+    @Mocks({
+        "accountId": "ownAccount1",
+        "billId": "2016001"
+    })
+    @Inject("dashboard_statement_download_ctrl", "dashboard")
+    private controller : myproj.IStatementDownloadCtrl;
+
+    @Test()
+    public testInit() : void {
+        expect(this.controller).toBeDefined();
+    }
+}
+```
 
 What does it do?
 ----------------
@@ -66,13 +93,15 @@ What if it was a lot easier? What if we could hearness the power of TypeScript a
 ```javascript
 "use strict";
 
-import {Spec, Inject, Test, Mocks, Before} from "TJAngular";
+import {Spec, Inject, Test, Mocks, Scope} from "TJAngular/index";
 
 @Spec()
 class StatementDownloadCtrlSpec {
 
+    @Scope({
+        "scopemember":"1234"
+    })
     @Mocks({
-        "$scope": {},
         "accountId": "ownAccount1",
         "billId": "2016001"
     })
@@ -93,8 +122,8 @@ class StatementDownloadCtrlSpec {
 }
 ```
 
-What does it do?
-----------------
+How does it work?
+-----------------
 TJAngular does all the `beforeEach` boilerplate behind the scenes and just injects the objects that you want to test into your
 test class.
 
@@ -133,6 +162,8 @@ As shown in the examples above, TJAngular mostly uses `Decorators` to do all its
 - `@XSpec(classname? : string)` - Same as above, only that an `xdescribe` will be used.
 - `@Inject(providerName : string, moduleName : string, dependencies? : Array<string>)` - Use it to annotate a property in your class. TJAngular will then inject the requested object into your class, before the `@Before` methods and the `@Test` methods will be executed. TJAngular will load this dependency from the provided module. Additional modules can be loaded with the `dependencies` array.
 - `@Mocks(mocks : any)` - Use it to provide additional objects/values, that need to be resolved by a resource that was requested with the `@Inject` annotation.
+- `@Scope(scope : any)` - Use it to provide a scope, that need to be resolved by a resource that was requested with the `@Inject` annotation. Internally it will use $rootScope.$new() to create a new scope and extend it with the scope object provided in the annotation. The scope will be injected as $scope into your injectable.
+- `@Template(html : string)` - If you want to test directives/components, you need to inject the directive/component using `@Inject` and provide a template where the directive/component resides.
 - `@InjectMock(providerName : string)` - Same as `@Inject`, only that it will load the ressource soely from the internal mock module.
 - `@Test(name? : string)` -  Use it to annotate a test method. It will use this method and execute it with jasmine's `it`. You can provide an optional name. If no name will be provided, the method name will be used as test name.
 - `@FTest(name? : string)` - Same as `@Test`, only that `fit` will be used.

@@ -1,4 +1,3 @@
-'use strict';
 
 export class MockProvider {
     public static MOCK_MODULE_NAME : string = 'TJangularMocks';
@@ -58,7 +57,6 @@ export class MockProvider {
 
         angular.forEach(invokeQueue, (providerData : any) => {
             let currProviderName : string = providerData[2][0];
-
             if (currProviderName === descriptor.providerName) {
                 let currProviderDeps : any = providerData[2][1];
 
@@ -211,7 +209,11 @@ export class MockProvider {
         }
     }
 
-    private static initializeProvider<T>(promiseInjector : angular.auto.IInjectorService, injector : angular.auto.IInjectorService, providerType : string, descriptor : ProviderDescriptor, preparedDeps : any) : T {
+    private static initializeProvider<T>(promiseInjector : angular.auto.IInjectorService,
+                                         injector : angular.auto.IInjectorService,
+                                         providerType : string,
+                                         descriptor : ProviderDescriptor,
+                                         preparedDeps : any) : T | angular.IAugmentedJQuery {
         let providerName : string = descriptor.providerName;
 
         if (descriptor.mock) {
@@ -226,9 +228,27 @@ export class MockProvider {
             case 'controller':
                 let $controller = <angular.IControllerService> injector.get('$controller');
                 return <T> $controller(providerName, preparedDeps);
+            case 'directive':
+                return MockProvider.createDirective(injector, descriptor, preparedDeps);
             default:
                 return <T> promiseInjector.get(providerName);
         }
+    }
+
+    private static createDirective(injector : angular.auto.IInjectorService, descriptor : ProviderDescriptor, preparedDeps : any) : angular.IAugmentedJQuery {
+        MockProvider.log('Creating directive ' + descriptor.providerName);
+        let $rootScope : angular.IRootScopeService = <angular.IRootScopeService> injector.get('$rootScope');
+        let $compile : angular.ICompileService = <angular.ICompileService> injector.get('$compile');
+        if (!angular.isDefined(descriptor.template)) {
+            console.error('Injected directives need a template to reside in. Add it via @Template() to the injectable. e.g. <div data-' + descriptor.providerName + '></div>.');
+            throw new Error('Injected directives need a template to reside in. Add it via @Template() to the injectable. e.g. <div data-' + descriptor.providerName + '></div>.');
+        }
+        let template : string = descriptor.template;
+        let element : angular.IAugmentedJQuery = angular.element(template);
+        preparedDeps['$scope'] = MockProvider.createScope(injector, descriptor);
+        element = $compile(template)(preparedDeps['$scope']);
+        $rootScope.$apply();
+        return element;
     }
 
     private static getMockForProvider(injector : angular.auto.IInjectorService,
@@ -237,9 +257,18 @@ export class MockProvider {
         if (angular.isDefined(descriptor.mocks[dependencyName])) {
             MockProvider.log('Found provided mock: ' + dependencyName);
             return descriptor.mocks[dependencyName];
+        } else if (dependencyName === '$scope' && angular.isDefined(descriptor.scope)) {
+            return MockProvider.createScope(injector, descriptor);
         } else {
             return injector.get(dependencyName);
         }
+    }
+
+    private static createScope(injector : angular.auto.IInjectorService, descriptor : ProviderDescriptor) : any {
+        let $rootScope : angular.IRootScopeService = <angular.IRootScopeService> injector.get('$rootScope');
+        let $scope : any = $rootScope.$new();
+        angular.extend($scope, descriptor.scope);
+        return $scope;
     }
 
     private static getProviderType(providerName : string, invokeQueue : Array<any>) : string {
@@ -266,11 +295,13 @@ export class MockProvider {
 }
 
 export class ProviderDescriptor {
+    public scope : any;
     public mocks : any = {};
     public moduleName : string;
     public providerName : string;
     public dependencies : Array<string>;
     public mock : boolean = false;
+    public template : string;
     constructor(public propertyKey : string) {}
 }
 
@@ -285,6 +316,7 @@ class TestDescriptor {
 export class MethodDescriptor {
     constructor(public target : any, public propertyKey : string) {}
 }
+
 
 export function Spec(classname? : string) : (target : any) => void {
     "use strict";
@@ -307,6 +339,48 @@ export function FSpec(classname? : string) : (target : any) => void {
 
     return (target : any) => {
         MockProvider.createSpec(target, classname, fdescribe);
+    };
+}
+
+export function Scope(scope : any) : (target : any, propertyKey : string) => void {
+    "use strict";
+
+    return (target : any, propertyKey : string) => {
+        if (!angular.isDefined(target.$injects)) {
+            target.$injects = [];
+        }
+        let descriptor : ProviderDescriptor = undefined;
+        angular.forEach(target.$injects, (desc : ProviderDescriptor) => {
+            if (desc.propertyKey === propertyKey) {
+                descriptor = desc;
+            }
+        });
+        if (!angular.isDefined(descriptor)) {
+            descriptor = new ProviderDescriptor(propertyKey);
+        }
+        descriptor.scope = scope;
+        target.$injects.push(descriptor);
+    };
+}
+
+export function Template(template : string) : (target : any, propertyKey : string) => void {
+    "use strict";
+
+    return (target : any, propertyKey : string) => {
+        if (!angular.isDefined(target.$injects)) {
+            target.$injects = [];
+        }
+        let descriptor : ProviderDescriptor = undefined;
+        angular.forEach(target.$injects, (desc : ProviderDescriptor) => {
+            if (desc.propertyKey === propertyKey) {
+                descriptor = desc;
+            }
+        });
+        if (!angular.isDefined(descriptor)) {
+            descriptor = new ProviderDescriptor(propertyKey);
+        }
+        descriptor.template = template;
+        target.$injects.push(descriptor);
     };
 }
 
@@ -466,3 +540,4 @@ export function ProvideMockConstant(providerName : string) : (target : any) => v
         MockProvider.registerMock(target, providerName, 'constant');
     };
 }
+

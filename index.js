@@ -1,4 +1,3 @@
-'use strict';
 define(["require", "exports"], function (require, exports) {
     var MockProvider = (function () {
         function MockProvider() {
@@ -193,18 +192,44 @@ define(["require", "exports"], function (require, exports) {
                 case 'controller':
                     var $controller = injector.get('$controller');
                     return $controller(providerName, preparedDeps);
+                case 'directive':
+                    return MockProvider.createDirective(injector, descriptor, preparedDeps);
                 default:
                     return promiseInjector.get(providerName);
             }
+        };
+        MockProvider.createDirective = function (injector, descriptor, preparedDeps) {
+            MockProvider.log('Creating directive ' + descriptor.providerName);
+            var $rootScope = injector.get('$rootScope');
+            var $compile = injector.get('$compile');
+            if (!angular.isDefined(descriptor.template)) {
+                console.error('Injected directives need a template to reside in. Add it via @Template() to the injectable. e.g. <div data-' + descriptor.providerName + '></div>.');
+                throw new Error('Injected directives need a template to reside in. Add it via @Template() to the injectable. e.g. <div data-' + descriptor.providerName + '></div>.');
+            }
+            var template = descriptor.template;
+            var element = angular.element(template);
+            preparedDeps['$scope'] = MockProvider.createScope(injector, descriptor);
+            element = $compile(template)(preparedDeps['$scope']);
+            $rootScope.$apply();
+            return element;
         };
         MockProvider.getMockForProvider = function (injector, dependencyName, descriptor) {
             if (angular.isDefined(descriptor.mocks[dependencyName])) {
                 MockProvider.log('Found provided mock: ' + dependencyName);
                 return descriptor.mocks[dependencyName];
             }
+            else if (dependencyName === '$scope' && angular.isDefined(descriptor.scope)) {
+                return MockProvider.createScope(injector, descriptor);
+            }
             else {
                 return injector.get(dependencyName);
             }
+        };
+        MockProvider.createScope = function (injector, descriptor) {
+            var $rootScope = injector.get('$rootScope');
+            var $scope = $rootScope.$new();
+            angular.extend($scope, descriptor.scope);
+            return $scope;
         };
         MockProvider.getProviderType = function (providerName, invokeQueue) {
             for (var i = 0; i < invokeQueue.length; i++) {
@@ -288,6 +313,46 @@ define(["require", "exports"], function (require, exports) {
         };
     }
     exports.FSpec = FSpec;
+    function Scope(scope) {
+        "use strict";
+        return function (target, propertyKey) {
+            if (!angular.isDefined(target.$injects)) {
+                target.$injects = [];
+            }
+            var descriptor = undefined;
+            angular.forEach(target.$injects, function (desc) {
+                if (desc.propertyKey === propertyKey) {
+                    descriptor = desc;
+                }
+            });
+            if (!angular.isDefined(descriptor)) {
+                descriptor = new ProviderDescriptor(propertyKey);
+            }
+            descriptor.scope = scope;
+            target.$injects.push(descriptor);
+        };
+    }
+    exports.Scope = Scope;
+    function Template(template) {
+        "use strict";
+        return function (target, propertyKey) {
+            if (!angular.isDefined(target.$injects)) {
+                target.$injects = [];
+            }
+            var descriptor = undefined;
+            angular.forEach(target.$injects, function (desc) {
+                if (desc.propertyKey === propertyKey) {
+                    descriptor = desc;
+                }
+            });
+            if (!angular.isDefined(descriptor)) {
+                descriptor = new ProviderDescriptor(propertyKey);
+            }
+            descriptor.template = template;
+            target.$injects.push(descriptor);
+        };
+    }
+    exports.Template = Template;
     function Mocks(mocks) {
         "use strict";
         return function (target, propertyKey) {

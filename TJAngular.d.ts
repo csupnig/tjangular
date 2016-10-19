@@ -17,11 +17,13 @@ declare module 'TJAngular' {
     }
     export class ProviderDescriptor {
         propertyKey: string;
+        scope: any;
         mocks: any;
         moduleName: string;
         providerName: string;
         dependencies: Array<string>;
         mock: boolean;
+        template: string;
         constructor(propertyKey: string);
     }
     export class MethodDescriptor {
@@ -32,6 +34,8 @@ declare module 'TJAngular' {
     export function Spec(classname?: string): (target: any) => void;
     export function XSpec(classname?: string): (target: any) => void;
     export function FSpec(classname?: string): (target: any) => void;
+    export function Scope(scope: any): (target: any, propertyKey: string) => void;
+    export function Template(template: string): (target: any, propertyKey: string) => void;
     export function Mocks(mocks: any): (target: any, propertyKey: string) => void;
     export function Inject(providerName: string, moduleName: string, dependencies?: Array<string>): (target: any, propertyKey: string) => void;
     export function InjectMock(providerName: string): (target: any, propertyKey: string) => void;

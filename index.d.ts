@@ -15,16 +15,20 @@ export declare class MockProvider {
     private static sanitizeProvider(providerData, injector);
     private static log(...args);
     private static initializeProvider<T>(promiseInjector, injector, providerType, descriptor, preparedDeps);
+    private static createDirective(injector, descriptor, preparedDeps);
     private static getMockForProvider(injector, dependencyName, descriptor);
+    private static createScope(injector, descriptor);
     private static getProviderType(providerName, invokeQueue);
 }
 export declare class ProviderDescriptor {
     propertyKey: string;
+    scope: any;
     mocks: any;
     moduleName: string;
     providerName: string;
     dependencies: Array<string>;
     mock: boolean;
+    template: string;
     constructor(propertyKey: string);
 }
 export declare class MethodDescriptor {
@@ -35,6 +39,8 @@ export declare class MethodDescriptor {
 export declare function Spec(classname?: string): (target: any) => void;
 export declare function XSpec(classname?: string): (target: any) => void;
 export declare function FSpec(classname?: string): (target: any) => void;
+export declare function Scope(scope: any): (target: any, propertyKey: string) => void;
+export declare function Template(template: string): (target: any, propertyKey: string) => void;
 export declare function Mocks(mocks: any): (target: any, propertyKey: string) => void;
 export declare function Inject(providerName: string, moduleName: string, dependencies?: Array<string>): (target: any, propertyKey: string) => void;
 export declare function InjectMock(providerName: string): (target: any, propertyKey: string) => void;
