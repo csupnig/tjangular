@@ -3,7 +3,7 @@
   "name": "TJAngular",
   "description": "A small testing framework built on top of jasmine, that uses typescript decorators to simplify testing.",
   "license": "MIT",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "node": ">=4.0.0"
   },
@@ -41,5 +41,5 @@
     "typescript",
     "jasmine"
   ],
-  "homepage": "https://github.com/csupnig/tjangular#readme"
+  "homepage": "https://www.supnig.com/blog/get-your-metal-tested---part-2-test-angularjs-and-typescript-with-karma-and-tjangular"
 }

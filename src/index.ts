@@ -291,6 +291,7 @@ export class MockProvider {
             }
         }
         return null;
+
     }
 }
 
@@ -302,6 +303,7 @@ export class ProviderDescriptor {
     public dependencies : Array<string>;
     public mock : boolean = false;
     public template : string;
+    public beforeInject : (deps : any) => void;
     constructor(public propertyKey : string) {}
 }
 
@@ -401,6 +403,27 @@ export function Mocks(mocks : any) : (target : any, propertyKey : string) => voi
             descriptor = new ProviderDescriptor(propertyKey);
         }
         descriptor.mocks = mocks;
+        target.$injects.push(descriptor);
+    };
+}
+
+export function BeforeInject(fn : (deps : any) => void) : (target : any, propertyKey : string) => void {
+    "use strict";
+
+    return (target : any, propertyKey : string) => {
+        if (!angular.isDefined(target.$injects)) {
+            target.$injects = [];
+        }
+        let descriptor : ProviderDescriptor = undefined;
+        angular.forEach(target.$injects, (desc : ProviderDescriptor) => {
+            if (desc.propertyKey === propertyKey) {
+                descriptor = desc;
+            }
+        });
+        if (!angular.isDefined(descriptor)) {
+            descriptor = new ProviderDescriptor(propertyKey);
+        }
+        descriptor.beforeInject = fn;
         target.$injects.push(descriptor);
     };
 }

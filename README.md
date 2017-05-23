@@ -2,6 +2,8 @@ TJAngular - Easy unit tests with TypeScript, jasmine and angular
 ----------------------------------------------------------------
 TJAngular is a small framework that makes writing unit tests a little less painfull. It depends on TypeScript, angular and Jasmine.
 
+Read more on my [Website](https://www.supnig.com/blog/get-your-metal-tested---part-2-test-angularjs-and-typescript-with-karma-and-tjangular).
+
 Quickstart
 ----------
 Makes unit testing easier by taking care of setting up the environment for you.

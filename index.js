@@ -373,6 +373,26 @@ define(["require", "exports"], function (require, exports) {
         };
     }
     exports.Mocks = Mocks;
+    function BeforeInject(fn) {
+        "use strict";
+        return function (target, propertyKey) {
+            if (!angular.isDefined(target.$injects)) {
+                target.$injects = [];
+            }
+            var descriptor = undefined;
+            angular.forEach(target.$injects, function (desc) {
+                if (desc.propertyKey === propertyKey) {
+                    descriptor = desc;
+                }
+            });
+            if (!angular.isDefined(descriptor)) {
+                descriptor = new ProviderDescriptor(propertyKey);
+            }
+            descriptor.beforeInject = fn;
+            target.$injects.push(descriptor);
+        };
+    }
+    exports.BeforeInject = BeforeInject;
     function Inject(providerName, moduleName, dependencies) {
         "use strict";
         return function (target, propertyKey) {
