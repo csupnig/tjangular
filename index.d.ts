@@ -29,6 +29,7 @@ export declare class ProviderDescriptor {
     dependencies: Array<string>;
     mock: boolean;
     template: string;
+    attachTemplateToBody: boolean;
     beforeInject: (deps: any) => void;
     constructor(propertyKey: string);
 }
@@ -41,7 +42,7 @@ export declare function Spec(classname?: string): (target: any) => void;
 export declare function XSpec(classname?: string): (target: any) => void;
 export declare function FSpec(classname?: string): (target: any) => void;
 export declare function Scope(scope: any): (target: any, propertyKey: string) => void;
-export declare function Template(template: string): (target: any, propertyKey: string) => void;
+export declare function Template(template: string, attachToBody?: boolean): (target: any, propertyKey: string) => void;
 export declare function Mocks(mocks: any): (target: any, propertyKey: string) => void;
 export declare function BeforeInject(fn: (deps: any) => void): (target: any, propertyKey: string) => void;
 export declare function Inject(providerName: string, moduleName: string, dependencies?: Array<string>): (target: any, propertyKey: string) => void;

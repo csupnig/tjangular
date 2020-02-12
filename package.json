@@ -3,7 +3,7 @@
   "name": "TJAngular",
   "description": "A small testing framework built on top of jasmine, that uses typescript decorators to simplify testing.",
   "license": "MIT",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "node": ">=4.0.0"
   },
@@ -23,7 +23,7 @@
     "gulp-typescript": "~2.8.0",
     "gulp-uglify": "~0.2.1",
     "gulp-util": "~2.2.14",
-    "dts-bundle":"0.5.0",
+    "dts-bundle": "0.5.0",
     "merge2": "*",
     "path": "~0.4.9",
     "run-sequence": "^1.1.5"

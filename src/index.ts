@@ -245,8 +245,12 @@ export class MockProvider {
         }
         let template : string = descriptor.template;
         let element : angular.IAugmentedJQuery = angular.element(template);
+        if (descriptor.attachTemplateToBody) {
+            angular.element(document.body).append(element);
+        }
         preparedDeps['$scope'] = MockProvider.createScope(injector, descriptor);
-        element = $compile(template)(preparedDeps['$scope']);
+
+        element = $compile(element)(preparedDeps['$scope']);
         $rootScope.$apply();
         return element;
     }
@@ -303,6 +307,7 @@ export class ProviderDescriptor {
     public dependencies : Array<string>;
     public mock : boolean = false;
     public template : string;
+    public attachTemplateToBody : boolean = false;
     public beforeInject : (deps : any) => void;
     constructor(public propertyKey : string) {}
 }
@@ -365,7 +370,7 @@ export function Scope(scope : any) : (target : any, propertyKey : string) => voi
     };
 }
 
-export function Template(template : string) : (target : any, propertyKey : string) => void {
+export function Template(template : string, attachToBody : boolean = false) : (target : any, propertyKey : string) => void {
     "use strict";
 
     return (target : any, propertyKey : string) => {
@@ -381,6 +386,7 @@ export function Template(template : string) : (target : any, propertyKey : strin
         if (!angular.isDefined(descriptor)) {
             descriptor = new ProviderDescriptor(propertyKey);
         }
+        descriptor.attachTemplateToBody = attachToBody;
         descriptor.template = template;
         target.$injects.push(descriptor);
     };

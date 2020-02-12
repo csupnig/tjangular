@@ -24,6 +24,7 @@ declare module 'TJAngular' {
         dependencies: Array<string>;
         mock: boolean;
         template: string;
+        attachTemplateToBody: boolean;
         beforeInject: (deps: any) => void;
         constructor(propertyKey: string);
     }
@@ -36,7 +37,7 @@ declare module 'TJAngular' {
     export function XSpec(classname?: string): (target: any) => void;
     export function FSpec(classname?: string): (target: any) => void;
     export function Scope(scope: any): (target: any, propertyKey: string) => void;
-    export function Template(template: string): (target: any, propertyKey: string) => void;
+    export function Template(template: string, attachToBody?: boolean): (target: any, propertyKey: string) => void;
     export function Mocks(mocks: any): (target: any, propertyKey: string) => void;
     export function BeforeInject(fn: (deps: any) => void): (target: any, propertyKey: string) => void;
     export function Inject(providerName: string, moduleName: string, dependencies?: Array<string>): (target: any, propertyKey: string) => void;

@@ -208,8 +208,11 @@ define(["require", "exports"], function (require, exports) {
             }
             var template = descriptor.template;
             var element = angular.element(template);
+            if (descriptor.attachTemplateToBody) {
+                angular.element(document.body).append(element);
+            }
             preparedDeps['$scope'] = MockProvider.createScope(injector, descriptor);
-            element = $compile(template)(preparedDeps['$scope']);
+            element = $compile(element)(preparedDeps['$scope']);
             $rootScope.$apply();
             return element;
         };
@@ -264,6 +267,7 @@ define(["require", "exports"], function (require, exports) {
             this.propertyKey = propertyKey;
             this.mocks = {};
             this.mock = false;
+            this.attachTemplateToBody = false;
         }
         return ProviderDescriptor;
     })();
@@ -333,8 +337,9 @@ define(["require", "exports"], function (require, exports) {
         };
     }
     exports.Scope = Scope;
-    function Template(template) {
+    function Template(template, attachToBody) {
         "use strict";
+        if (attachToBody === void 0) { attachToBody = false; }
         return function (target, propertyKey) {
             if (!angular.isDefined(target.$injects)) {
                 target.$injects = [];
@@ -348,6 +353,7 @@ define(["require", "exports"], function (require, exports) {
             if (!angular.isDefined(descriptor)) {
                 descriptor = new ProviderDescriptor(propertyKey);
             }
+            descriptor.attachTemplateToBody = attachToBody;
             descriptor.template = template;
             target.$injects.push(descriptor);
         };
