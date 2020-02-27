@@ -14,8 +14,8 @@ export declare class MockProvider {
     static registerMock(mock: any, providerName: string, providerType: string): void;
     private static sanitizeProvider(providerData, injector);
     private static log(...args);
-    private static initializeProvider<T>(promiseInjector, injector, providerType, descriptor, preparedDeps);
-    private static createDirective(injector, descriptor, preparedDeps);
+    private static initializeProvider<T>(promiseInjector, injector, providerType, descriptor, preparedDeps, invokeQueue);
+    private static createDirective(injector, descriptor, preparedDeps, invokeQueue);
     private static getMockForProvider(injector, dependencyName, descriptor);
     private static createScope(injector, descriptor);
     private static getProviderType(providerName, invokeQueue);
@@ -30,6 +30,7 @@ export declare class ProviderDescriptor {
     mock: boolean;
     template: string;
     attachTemplateToBody: boolean;
+    mockControllerDeps: boolean;
     beforeInject: (deps: any) => void;
     constructor(propertyKey: string);
 }
@@ -42,7 +43,7 @@ export declare function Spec(classname?: string): (target: any) => void;
 export declare function XSpec(classname?: string): (target: any) => void;
 export declare function FSpec(classname?: string): (target: any) => void;
 export declare function Scope(scope: any): (target: any, propertyKey: string) => void;
-export declare function Template(template: string, attachToBody?: boolean): (target: any, propertyKey: string) => void;
+export declare function Template(template: string, attachToBody?: boolean, mockControllerDeps?: boolean): (target: any, propertyKey: string) => void;
 export declare function Mocks(mocks: any): (target: any, propertyKey: string) => void;
 export declare function BeforeInject(fn: (deps: any) => void): (target: any, propertyKey: string) => void;
 export declare function Inject(providerName: string, moduleName: string, dependencies?: Array<string>): (target: any, propertyKey: string) => void;

@@ -35,7 +35,7 @@ export class MockProvider {
             }
         });
         let providerType : string = MockProvider.getProviderType(descriptor.providerName, invokeQueue);
-        let provider : any = MockProvider.initializeProvider<T>(injector, injector, providerType, descriptor, preparedDeps);
+        let provider : any = MockProvider.initializeProvider<T>(injector, injector, providerType, descriptor, preparedDeps, invokeQueue);
         MockProvider.log('Providing dependencies for ' + descriptor.providerName + ' as .$deps', objectDependencies);
         provider.$deps = preparedDeps;
         return provider;
@@ -213,7 +213,8 @@ export class MockProvider {
                                          injector : angular.auto.IInjectorService,
                                          providerType : string,
                                          descriptor : ProviderDescriptor,
-                                         preparedDeps : any) : T | angular.IAugmentedJQuery {
+                                         preparedDeps : any,
+                                         invokeQueue : Array<any>) : T | angular.IAugmentedJQuery {
         let providerName : string = descriptor.providerName;
 
         if (descriptor.mock) {
@@ -229,14 +230,30 @@ export class MockProvider {
                 let $controller = <angular.IControllerService> injector.get('$controller');
                 return <T> $controller(providerName, preparedDeps);
             case 'directive':
-                return MockProvider.createDirective(injector, descriptor, preparedDeps);
+                return MockProvider.createDirective(injector, descriptor, preparedDeps, invokeQueue);
             default:
                 return <T> promiseInjector.get(providerName);
         }
     }
 
-    private static createDirective(injector : angular.auto.IInjectorService, descriptor : ProviderDescriptor, preparedDeps : any) : angular.IAugmentedJQuery {
+    private static createDirective(injector : angular.auto.IInjectorService, descriptor : ProviderDescriptor, preparedDeps : any, invokeQueue : Array<any>) : angular.IAugmentedJQuery {
         MockProvider.log('Creating directive ' + descriptor.providerName);
+        if (descriptor.mockControllerDeps) {
+            for (let i = 0; i < invokeQueue.length; i++) {
+                let providerInfo = invokeQueue[i];
+                if (providerInfo[2][0] === descriptor.providerName) {
+                    if (providerInfo[2] && providerInfo[2][1] && providerInfo[2][1]['controller'] && providerInfo[2][1]['controller'].$inject) {
+                        const controllerDeps = providerInfo[2][1]['controller'].$inject.map(dep => {
+                            if (MockProvider.MOCKS.filter(mockProv => mockProv.providerName === dep).length > 0) {
+                                return MockProvider.MOCK_PREFIX + dep;
+                            }
+                            return dep;
+                        });
+                        providerInfo[2][1]['controller'].$inject = controllerDeps;
+                    }
+                }
+            }
+        }
         let $rootScope : angular.IRootScopeService = <angular.IRootScopeService> injector.get('$rootScope');
         let $compile : angular.ICompileService = <angular.ICompileService> injector.get('$compile');
         if (!angular.isDefined(descriptor.template)) {
@@ -308,6 +325,7 @@ export class ProviderDescriptor {
     public mock : boolean = false;
     public template : string;
     public attachTemplateToBody : boolean = false;
+    public mockControllerDeps : boolean = false;
     public beforeInject : (deps : any) => void;
     constructor(public propertyKey : string) {}
 }
@@ -370,7 +388,7 @@ export function Scope(scope : any) : (target : any, propertyKey : string) => voi
     };
 }
 
-export function Template(template : string, attachToBody : boolean = false) : (target : any, propertyKey : string) => void {
+export function Template(template : string, attachToBody : boolean = false, mockControllerDeps : boolean = false) : (target : any, propertyKey : string) => void {
     "use strict";
 
     return (target : any, propertyKey : string) => {
@@ -388,6 +406,7 @@ export function Template(template : string, attachToBody : boolean = false) : (t
         }
         descriptor.attachTemplateToBody = attachToBody;
         descriptor.template = template;
+        descriptor.mockControllerDeps = mockControllerDeps;
         target.$injects.push(descriptor);
     };
 }

@@ -29,7 +29,7 @@ define(["require", "exports"], function (require, exports) {
                 }
             });
             var providerType = MockProvider.getProviderType(descriptor.providerName, invokeQueue);
-            var provider = MockProvider.initializeProvider(injector, injector, providerType, descriptor, preparedDeps);
+            var provider = MockProvider.initializeProvider(injector, injector, providerType, descriptor, preparedDeps, invokeQueue);
             MockProvider.log('Providing dependencies for ' + descriptor.providerName + ' as .$deps', objectDependencies);
             provider.$deps = preparedDeps;
             return provider;
@@ -180,7 +180,7 @@ define(["require", "exports"], function (require, exports) {
                 console.log.apply(null, args);
             }
         };
-        MockProvider.initializeProvider = function (promiseInjector, injector, providerType, descriptor, preparedDeps) {
+        MockProvider.initializeProvider = function (promiseInjector, injector, providerType, descriptor, preparedDeps, invokeQueue) {
             var providerName = descriptor.providerName;
             if (descriptor.mock) {
                 providerName = MockProvider.MOCK_PREFIX + providerName;
@@ -193,13 +193,29 @@ define(["require", "exports"], function (require, exports) {
                     var $controller = injector.get('$controller');
                     return $controller(providerName, preparedDeps);
                 case 'directive':
-                    return MockProvider.createDirective(injector, descriptor, preparedDeps);
+                    return MockProvider.createDirective(injector, descriptor, preparedDeps, invokeQueue);
                 default:
                     return promiseInjector.get(providerName);
             }
         };
-        MockProvider.createDirective = function (injector, descriptor, preparedDeps) {
+        MockProvider.createDirective = function (injector, descriptor, preparedDeps, invokeQueue) {
             MockProvider.log('Creating directive ' + descriptor.providerName);
+            if (descriptor.mockControllerDeps) {
+                for (var i = 0; i < invokeQueue.length; i++) {
+                    var providerInfo = invokeQueue[i];
+                    if (providerInfo[2][0] === descriptor.providerName) {
+                        if (providerInfo[2] && providerInfo[2][1] && providerInfo[2][1]['controller'] && providerInfo[2][1]['controller'].$inject) {
+                            var controllerDeps = providerInfo[2][1]['controller'].$inject.map(function (dep) {
+                                if (MockProvider.MOCKS.filter(function (mockProv) { return mockProv.providerName === dep; }).length > 0) {
+                                    return MockProvider.MOCK_PREFIX + dep;
+                                }
+                                return dep;
+                            });
+                            providerInfo[2][1]['controller'].$inject = controllerDeps;
+                        }
+                    }
+                }
+            }
             var $rootScope = injector.get('$rootScope');
             var $compile = injector.get('$compile');
             if (!angular.isDefined(descriptor.template)) {
@@ -268,6 +284,7 @@ define(["require", "exports"], function (require, exports) {
             this.mocks = {};
             this.mock = false;
             this.attachTemplateToBody = false;
+            this.mockControllerDeps = false;
         }
         return ProviderDescriptor;
     })();
@@ -337,9 +354,10 @@ define(["require", "exports"], function (require, exports) {
         };
     }
     exports.Scope = Scope;
-    function Template(template, attachToBody) {
+    function Template(template, attachToBody, mockControllerDeps) {
         "use strict";
         if (attachToBody === void 0) { attachToBody = false; }
+        if (mockControllerDeps === void 0) { mockControllerDeps = false; }
         return function (target, propertyKey) {
             if (!angular.isDefined(target.$injects)) {
                 target.$injects = [];
@@ -355,6 +373,7 @@ define(["require", "exports"], function (require, exports) {
             }
             descriptor.attachTemplateToBody = attachToBody;
             descriptor.template = template;
+            descriptor.mockControllerDeps = mockControllerDeps;
             target.$injects.push(descriptor);
         };
     }

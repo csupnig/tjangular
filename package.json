@@ -3,7 +3,7 @@
   "name": "TJAngular",
   "description": "A small testing framework built on top of jasmine, that uses typescript decorators to simplify testing.",
   "license": "MIT",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "engines": {
     "node": ">=4.0.0"
   },
